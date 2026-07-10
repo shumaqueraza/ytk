@@ -5,27 +5,30 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Knowledge Archive</title>
 <meta name="description" content="A searchable archive of structured knowledge articles generated from YouTube videos.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  /* ----------------------------------------------------------------
-     Editorial knowledge archive — calm, readable, no chrome.
-     Palette: warm paper background, dark ink, single muted accent.
-     ---------------------------------------------------------------- */
   :root {
     --bg: #fbfaf7;
     --surface: #ffffff;
+    --sidebar-bg: #2b2d31;
+    --sidebar-hover: #3a3c41;
+    --sidebar-active: #4a4d52;
     --ink: #1a1a1a;
     --ink-soft: #4a4a4a;
     --ink-muted: #7a7a7a;
     --rule: #e8e6df;
     --accent: #8b3a1f;
     --accent-soft: #f5ede7;
-    --shadow: 0 1px 2px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.04);
-    --radius: 6px;
-    --max: 1180px;
-    --reading: 680px;
-    --serif: 'Source Serif Pro', 'Source Serif 4', Georgia, 'Times New Roman', serif;
-    --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', 'Helvetica Neue', Arial, sans-serif;
-    --mono: 'SF Mono', Menlo, Consolas, monospace;
+    --shadow: 0 1px 2px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.06);
+    --radius: 8px;
+    --sidebar-w: 72px;
+    --max: 1200px;
+    --reading: 720px;
+    --serif: 'Playfair Display', Georgia, 'Times New Roman', serif;
+    --sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+    --mono: 'SF Mono', Menlo, Consolas, 'Courier New', monospace;
   }
 
   * { box-sizing: border-box; }
@@ -40,83 +43,175 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
-  /* ---------- Header ---------- */
-  header.site {
-    border-bottom: 1px solid var(--rule);
-    background: var(--surface);
+  /* ---------- Sidebar (Discord server-list style) ---------- */
+  .sidebar {
+    width: var(--sidebar-w);
+    height: 100vh;
+    position: fixed;
+    left: 0;
+    top: 0;
+    background: var(--sidebar-bg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 12px 0;
+    gap: 8px;
+    z-index: 100;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--sidebar-hover) transparent;
+  }
+  .sidebar::-webkit-scrollbar { width: 4px; }
+  .sidebar::-webkit-scrollbar-thumb { background: var(--sidebar-hover); border-radius: 2px; }
+
+  .sidebar-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: border-radius .2s ease, background .2s ease;
+    font-size: 16px;
+    font-weight: 700;
+    color: #dcddde;
+    position: relative;
+    flex-shrink: 0;
+    text-decoration: none;
+    border: none;
+    user-select: none;
+  }
+  .sidebar-icon svg { width: 24px; height: 24px; fill: #dcddde; transition: fill .2s; }
+  .sidebar-icon:hover {
+    border-radius: 16px;
+    background: var(--accent);
+    color: #fff;
+  }
+  .sidebar-icon:hover svg { fill: #fff; }
+  .sidebar-icon.active {
+    border-radius: 16px;
+    background: var(--accent);
+    color: #fff;
+  }
+  .sidebar-icon.active svg { fill: #fff; }
+  .sidebar-icon.active::before {
+    content: "";
+    position: absolute;
+    left: -16px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 4px;
+    height: 36px;
+    background: #fff;
+    border-radius: 0 4px 4px 0;
+  }
+  .sidebar-icon .tooltip {
+    position: absolute;
+    left: 64px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: #000;
+    color: #fff;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .15s;
+    z-index: 200;
+  }
+  .sidebar-icon .tooltip::before {
+    content: "";
+    position: absolute;
+    left: -4px;
+    top: 50%;
+    transform: translateY(-50%);
+    border: 4px solid transparent;
+    border-right-color: #000;
+  }
+  .sidebar-icon:hover .tooltip { opacity: 1; }
+
+  .sidebar-divider {
+    width: 32px;
+    height: 2px;
+    background: #3a3c41;
+    border-radius: 1px;
+    margin: 4px 0;
+    flex-shrink: 0;
+  }
+
+  .sidebar-add {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: #3a3c41;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: border-radius .2s, background .2s;
+    flex-shrink: 0;
+  }
+  .sidebar-add:hover { border-radius: 16px; background: #3ba55d; }
+  .sidebar-add svg { width: 24px; height: 24px; fill: #3ba55d; transition: fill .2s; }
+  .sidebar-add:hover svg { fill: #fff; }
+
+  /* ---------- Main layout ---------- */
+  .main-wrap {
+    margin-left: var(--sidebar-w);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ---------- Top bar (search only) ---------- */
+  header.topbar {
     position: sticky;
     top: 0;
     z-index: 50;
-    backdrop-filter: saturate(120%);
+    background: rgba(251, 250, 247, 0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--rule);
+    padding: 16px 32px;
   }
-  .site-inner {
+  .topbar-inner {
     max-width: var(--max);
     margin: 0 auto;
-    padding: 18px 24px;
     display: flex;
     align-items: center;
-    gap: 32px;
+    gap: 16px;
   }
-  .brand {
+  .topbar-title {
     font-family: var(--serif);
-    font-size: 22px;
+    font-size: 18px;
     font-weight: 600;
+    color: var(--ink);
+    white-space: nowrap;
     letter-spacing: -0.01em;
-    color: var(--ink);
-    text-decoration: none;
-    white-space: nowrap;
-  }
-  .brand small {
-    display: block;
-    font-family: var(--sans);
-    font-size: 11px;
-    font-weight: 500;
-    color: var(--ink-muted);
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    margin-top: 2px;
-  }
-  nav.channels {
-    display: flex;
-    gap: 18px;
-    overflow-x: auto;
-    scrollbar-width: none;
-    flex: 1;
-  }
-  nav.channels::-webkit-scrollbar { display: none; }
-  nav.channels a {
-    color: var(--ink-soft);
-    text-decoration: none;
-    font-size: 14px;
-    white-space: nowrap;
-    padding: 6px 0;
-    border-bottom: 2px solid transparent;
-    transition: color .15s, border-color .15s;
-  }
-  nav.channels a:hover { color: var(--ink); }
-  nav.channels a.active {
-    color: var(--ink);
-    border-bottom-color: var(--accent);
   }
   .search-wrap {
     position: relative;
-    min-width: 240px;
+    flex: 1;
+    max-width: 480px;
   }
   .search-wrap input {
     width: 100%;
-    padding: 9px 12px 9px 34px;
+    padding: 10px 14px 10px 38px;
     font-size: 14px;
     font-family: var(--sans);
-    background: var(--bg);
+    background: var(--surface);
     border: 1px solid var(--rule);
-    border-radius: var(--radius);
+    border-radius: 8px;
     color: var(--ink);
     outline: none;
-    transition: border-color .15s, background .15s;
+    transition: border-color .15s, box-shadow .15s;
   }
   .search-wrap input:focus {
-    border-color: var(--ink-muted);
-    background: var(--surface);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
   }
   .search-wrap::before {
     content: "";
@@ -124,23 +219,25 @@
     left: 12px;
     top: 50%;
     transform: translateY(-50%);
-    width: 14px;
-    height: 14px;
+    width: 16px;
+    height: 16px;
     background: no-repeat center / contain url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237a7a7a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='11' cy='11' r='7'></circle><line x1='21' y1='21' x2='16.5' y2='16.5'></line></svg>");
+    pointer-events: none;
   }
 
-  /* ---------- Layout ---------- */
+  /* ---------- Content ---------- */
   main {
     max-width: var(--max);
     margin: 0 auto;
-    padding: 40px 24px 80px;
+    padding: 40px 32px 80px;
+    width: 100%;
+    flex: 1;
   }
 
-  /* ---------- Views ---------- */
   .view { display: none; }
   .view.active { display: block; }
 
-  /* ---------- Channel / home view ---------- */
+  /* ---------- Page head ---------- */
   .page-head {
     margin-bottom: 36px;
     padding-bottom: 24px;
@@ -148,19 +245,21 @@
   }
   .page-head h1 {
     font-family: var(--serif);
-    font-size: 36px;
-    font-weight: 600;
+    font-size: 40px;
+    font-weight: 700;
     margin: 0 0 8px;
     letter-spacing: -0.02em;
+    line-height: 1.1;
   }
   .page-head .meta {
     color: var(--ink-muted);
     font-size: 14px;
   }
 
+  /* ---------- Card grid ---------- */
   .grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     gap: 28px;
   }
 
@@ -170,12 +269,12 @@
     border-radius: var(--radius);
     overflow: hidden;
     cursor: pointer;
-    transition: transform .15s ease, box-shadow .15s ease, border-color .15s;
+    transition: transform .2s ease, box-shadow .2s ease, border-color .2s;
     display: flex;
     flex-direction: column;
   }
   .card:hover {
-    transform: translateY(-2px);
+    transform: translateY(-3px);
     box-shadow: var(--shadow);
     border-color: #d8d4ca;
   }
@@ -184,12 +283,28 @@
     aspect-ratio: 16/9;
     background: #efedea center / cover no-repeat;
     display: block;
+    position: relative;
   }
   .card .thumb.empty {
     background: linear-gradient(135deg, #efedea, #e3ded4);
   }
+  .card .thumb .play-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.15);
+    opacity: 0;
+    transition: opacity .2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .card:hover .thumb .play-overlay { opacity: 1; }
+  .card .thumb .play-overlay svg {
+    width: 48px; height: 48px; fill: #fff;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+  }
   .card .body {
-    padding: 16px 18px 18px;
+    padding: 18px 20px 20px;
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -204,15 +319,15 @@
   }
   .card h3 {
     font-family: var(--serif);
-    font-size: 18px;
+    font-size: 19px;
     font-weight: 600;
-    line-height: 1.35;
+    line-height: 1.3;
     margin: 0 0 8px;
     color: var(--ink);
     letter-spacing: -0.01em;
   }
   .card .summary {
-    font-size: 13.5px;
+    font-size: 14px;
     color: var(--ink-soft);
     line-height: 1.55;
     margin: 0 0 14px;
@@ -229,11 +344,6 @@
     font-size: 12px;
     color: var(--ink-muted);
   }
-  .card .reading {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-  }
 
   /* ---------- Article view ---------- */
   article.article {
@@ -248,21 +358,22 @@
   article.article .breadcrumb a {
     color: var(--ink-muted);
     text-decoration: none;
+    transition: color .15s;
   }
   article.article .breadcrumb a:hover { color: var(--accent); }
 
   article.article h1 {
     font-family: var(--serif);
-    font-size: 38px;
-    font-weight: 600;
-    line-height: 1.15;
+    font-size: 42px;
+    font-weight: 700;
+    line-height: 1.12;
     letter-spacing: -0.02em;
     margin: 0 0 16px;
   }
   article.article .article-meta {
     color: var(--ink-muted);
     font-size: 14px;
-    margin-bottom: 28px;
+    margin-bottom: 32px;
     padding-bottom: 20px;
     border-bottom: 1px solid var(--rule);
     display: flex;
@@ -278,39 +389,62 @@
 
   article.article h2 {
     font-family: var(--serif);
-    font-size: 24px;
+    font-size: 26px;
     font-weight: 600;
-    margin: 36px 0 12px;
+    margin: 40px 0 14px;
     letter-spacing: -0.01em;
+  }
+  article.article h3 {
+    font-family: var(--serif);
+    font-size: 20px;
+    font-weight: 600;
+    margin: 28px 0 10px;
   }
   article.article p {
     font-family: var(--serif);
     font-size: 18px;
-    line-height: 1.7;
+    line-height: 1.75;
     color: #252525;
     margin: 0 0 18px;
   }
   article.article ul, article.article ol {
     font-family: var(--serif);
     font-size: 17px;
-    line-height: 1.65;
+    line-height: 1.7;
     color: #252525;
-    padding-left: 22px;
+    padding-left: 24px;
     margin: 0 0 22px;
   }
-  article.article li { margin-bottom: 6px; }
+  article.article li { margin-bottom: 8px; }
+  article.article strong { font-weight: 700; }
+  article.article em { font-style: italic; }
+  article.article code {
+    font-family: var(--mono);
+    font-size: 0.85em;
+    background: #f0eee9;
+    padding: 2px 6px;
+    border-radius: 3px;
+  }
+  article.article a {
+    color: var(--accent);
+    text-decoration: underline;
+    text-decoration-color: var(--accent-soft);
+    text-underline-offset: 2px;
+  }
+  article.article a:hover { text-decoration-color: var(--accent); }
 
   .summary-block {
     background: var(--accent-soft);
     border-left: 3px solid var(--accent);
-    padding: 18px 22px;
+    padding: 20px 24px;
     border-radius: 0 var(--radius) var(--radius) 0;
-    margin-bottom: 32px;
+    margin-bottom: 36px;
   }
   .summary-block p {
     font-size: 16px;
     margin: 0 0 10px;
     color: var(--ink);
+    line-height: 1.6;
   }
   .summary-block p:last-child { margin-bottom: 0; }
   .summary-block .label {
@@ -320,19 +454,19 @@
     letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--accent);
-    margin-bottom: 8px;
+    margin-bottom: 10px;
   }
 
   .faq-item {
     border-top: 1px solid var(--rule);
-    padding: 18px 0;
+    padding: 20px 0;
   }
   .faq-item:last-child { border-bottom: 1px solid var(--rule); }
   .faq-item .q {
     font-family: var(--serif);
-    font-size: 17px;
+    font-size: 18px;
     font-weight: 600;
-    margin-bottom: 6px;
+    margin-bottom: 8px;
   }
   .faq-item .a {
     font-family: var(--serif);
@@ -340,31 +474,34 @@
     color: var(--ink-soft);
     line-height: 1.65;
   }
+  .faq-item .a p { font-size: 16px; margin: 0 0 8px; }
+  .faq-item .a p:last-child { margin-bottom: 0; }
 
   .tags {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
-    margin: 28px 0 8px;
+    margin: 32px 0 8px;
   }
   .tag {
     display: inline-block;
-    padding: 4px 10px;
+    padding: 5px 12px;
     font-size: 12px;
     background: var(--surface);
     border: 1px solid var(--rule);
     border-radius: 100px;
     color: var(--ink-soft);
     text-decoration: none;
-    transition: border-color .15s, color .15s;
+    transition: border-color .15s, color .15s, background .15s;
+    cursor: pointer;
   }
-  .tag:hover { color: var(--accent); border-color: var(--accent); }
+  .tag:hover { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
 
   .entities {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 20px;
-    margin: 32px 0;
+    gap: 24px;
+    margin: 36px 0;
     padding: 24px;
     background: var(--surface);
     border: 1px solid var(--rule);
@@ -383,11 +520,11 @@
   .entities li {
     font-size: 14px;
     color: var(--ink-soft);
-    padding: 2px 0;
+    padding: 3px 0;
   }
 
   .article-footer {
-    margin-top: 40px;
+    margin-top: 48px;
     padding-top: 24px;
     border-top: 1px solid var(--rule);
     display: flex;
@@ -398,16 +535,16 @@
   }
   .btn-back {
     display: inline-block;
-    padding: 8px 16px;
+    padding: 10px 18px;
     background: var(--surface);
     border: 1px solid var(--rule);
     border-radius: var(--radius);
     color: var(--ink);
     text-decoration: none;
     font-size: 14px;
-    transition: background .15s;
+    transition: background .15s, border-color .15s;
   }
-  .btn-back:hover { background: var(--bg); }
+  .btn-back:hover { background: var(--bg); border-color: var(--ink-muted); }
   .source-link {
     font-size: 13px;
     color: var(--ink-muted);
@@ -415,7 +552,7 @@
   }
   .source-link:hover { color: var(--accent); }
 
-  /* ---------- Empty / loading / error states ---------- */
+  /* ---------- States ---------- */
   .state {
     text-align: center;
     padding: 80px 20px;
@@ -425,11 +562,10 @@
     font-size: 32px;
     font-family: var(--serif);
     margin-bottom: 12px;
-    color: var(--ink-muted);
   }
   .state h2 {
     font-family: var(--serif);
-    font-size: 22px;
+    font-size: 24px;
     margin: 0 0 6px;
     color: var(--ink);
     font-weight: 500;
@@ -438,11 +574,24 @@
 
   /* ---------- Search results ---------- */
   .search-results .result {
-    padding: 20px 0;
+    padding: 22px 0;
     border-bottom: 1px solid var(--rule);
     cursor: pointer;
+    display: flex;
+    gap: 16px;
   }
   .search-results .result:hover h3 { color: var(--accent); }
+  .search-results .result .result-thumb {
+    width: 120px;
+    height: 68px;
+    border-radius: 6px;
+    background: #efedea center / cover no-repeat;
+    flex-shrink: 0;
+  }
+  .search-results .result .result-thumb.empty {
+    background: linear-gradient(135deg, #efedea, #e3ded4);
+  }
+  .search-results .result .result-body { flex: 1; min-width: 0; }
   .search-results .result h3 {
     font-family: var(--serif);
     font-size: 20px;
@@ -472,81 +621,78 @@
 
   /* ---------- Responsive ---------- */
   @media (max-width: 760px) {
-    .site-inner { flex-wrap: wrap; gap: 16px; padding: 14px 16px; }
-    .search-wrap { width: 100%; min-width: 0; order: 3; }
+    :root { --sidebar-w: 60px; }
+    .sidebar-icon { width: 40px; height: 40px; font-size: 14px; }
+    .sidebar-icon svg { width: 20px; height: 20px; }
     main { padding: 24px 16px 60px; }
-    .page-head h1 { font-size: 28px; }
-    article.article h1 { font-size: 28px; }
+    header.topbar { padding: 12px 16px; }
+    .page-head h1 { font-size: 30px; }
+    article.article h1 { font-size: 30px; }
     article.article p { font-size: 17px; }
     .grid { grid-template-columns: 1fr; gap: 20px; }
+    .search-results .result .result-thumb { width: 80px; height: 45px; }
   }
 </style>
 </head>
 <body>
 
-<header class="site">
-  <div class="site-inner">
-    <a class="brand" href="#/" id="brandLink">
-      Knowledge Archive
-      <small>structured reading</small>
-    </a>
-    <nav class="channels" id="channelNav"></nav>
-    <div class="search-wrap">
-      <input id="searchInput" type="search" placeholder="Search articles, topics, keywords..." autocomplete="off">
-    </div>
-  </div>
-</header>
+<!-- Discord-style sidebar -->
+<aside class="sidebar" id="sidebar">
+  <a class="sidebar-icon" id="homeIcon" href="#/" title="All Articles">
+    <svg viewBox="0 0 24 24"><path d="M12 2L2 12h3v8h6v-6h2v6h6v-8h3L12 2z"/></svg>
+    <span class="tooltip">All Articles</span>
+  </a>
+  <div class="sidebar-divider"></div>
+  <div id="channelIcons"></div>
+</aside>
 
-<main>
-  <!-- Home / channel view -->
-  <section id="homeView" class="view active">
-    <div class="page-head">
-      <h1 id="homeTitle">All Articles</h1>
-      <div class="meta" id="homeMeta"></div>
+<div class="main-wrap">
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="topbar-title" id="topbarTitle">Knowledge Archive</div>
+      <div class="search-wrap">
+        <input id="searchInput" type="search" placeholder="Search articles, topics, keywords..." autocomplete="off">
+      </div>
     </div>
-    <div id="cardGrid" class="grid"></div>
-    <div id="homeState" class="state" style="display:none;">
-      <div class="icon">—</div>
-      <h2>No articles yet</h2>
-      <p>Run the pipeline to publish your first knowledge article.</p>
-    </div>
-  </section>
+  </header>
 
-  <!-- Search results view -->
-  <section id="searchView" class="view">
-    <div class="page-head">
-      <h1 id="searchTitle">Search</h1>
-      <div class="meta" id="searchMeta"></div>
-    </div>
-    <div class="search-results" id="searchResults"></div>
-  </section>
+  <main>
+    <section id="homeView" class="view active">
+      <div class="page-head">
+        <h1 id="homeTitle">All Articles</h1>
+        <div class="meta" id="homeMeta"></div>
+      </div>
+      <div id="cardGrid" class="grid"></div>
+      <div id="homeState" class="state" style="display:none;">
+        <div class="icon">—</div>
+        <h2>No articles yet</h2>
+        <p>Run the pipeline to publish your first knowledge article.</p>
+      </div>
+    </section>
 
-  <!-- Article view -->
-  <section id="articleView" class="view">
-    <article class="article" id="articleBody"></article>
-  </section>
-</main>
+    <section id="searchView" class="view">
+      <div class="page-head">
+        <h1 id="searchTitle">Search</h1>
+        <div class="meta" id="searchMeta"></div>
+      </div>
+      <div class="search-results" id="searchResults"></div>
+    </section>
+
+    <section id="articleView" class="view">
+      <article class="article" id="articleBody"></article>
+    </section>
+  </main>
+</div>
 
 <script>
-/* ============================================================================
-   Static knowledge archive frontend.
-   Loads channels.json + search.json up front, fetches per-video JSON on demand.
-   Routing is hash-based:  #/  #/c/:slug  #/a/:slug/:videoId  #/q=:query
-   ============================================================================ */
-
 const STATE = {
-  channels: [],        // [{name, slug, url, ...}]
-  search: [],          // [{title, channel, slug, video_id, summary, keywords, topics}]
+  channels: [],
+  search: [],
   currentChannel: null,
-  currentArticle: null,
 };
 
 const $ = (sel) => document.querySelector(sel);
-const views = {
-  home: $('#homeView'),
-  search: $('#searchView'),
-  article: $('#articleView'),
-};
+const views = { home: $('#homeView'), search: $('#searchView'), article: $('#articleView') };
 
 function showView(name) {
   Object.values(views).forEach(v => v.classList.remove('active'));
@@ -554,9 +700,8 @@ function showView(name) {
   window.scrollTo({ top: 0, behavior: 'instant' });
 }
 
-/* ---------- JSON fetching ---------- */
+/* ---------- JSON fetch ---------- */
 async function fetchJSON(path) {
-  // Resolve relative to the page location (works on GitHub Pages subpaths too).
   const base = window.location.pathname.replace(/\/[^/]*$/, '/');
   const url = base + path;
   const r = await fetch(url, { cache: 'no-cache' });
@@ -567,19 +712,18 @@ async function fetchJSON(path) {
 /* ---------- Utils ---------- */
 function escapeHTML(s) {
   if (s == null) return '';
-  return String(s)
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 function formatDate(yyyymmdd) {
-  if (!yyyymmdd || yyyymmdd.length !== 8) return '';
+  if (!yyyymmdd || String(yyyymmdd).length !== 8) return '';
   const y = yyyymmdd.slice(0,4), m = yyyymmdd.slice(4,6), d = yyyymmdd.slice(6,8);
   const dt = new Date(`${y}-${m}-${d}T00:00:00Z`);
   if (isNaN(dt)) return yyyymmdd;
-  return dt.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+  return dt.toLocaleDateString(undefined, { year:'numeric', month:'short', day:'numeric' });
 }
 function formatDuration(sec) {
-  sec = parseInt(sec, 10) || 0;
+  sec = parseInt(sec,10) || 0;
   if (!sec) return '';
   const h = Math.floor(sec/3600), m = Math.floor((sec%3600)/60), s = sec%60;
   if (h) return `${h}h ${m}m`;
@@ -587,77 +731,113 @@ function formatDuration(sec) {
   return `${s}s`;
 }
 
-/* ---------- Rendering: channel nav ---------- */
-function renderChannelNav() {
-  const nav = $('#channelNav');
-  nav.innerHTML = '';
-  const all = document.createElement('a');
-  all.href = '#/';
-  all.textContent = 'All';
-  all.className = STATE.currentChannel === null ? 'active' : '';
-  nav.appendChild(all);
-  STATE.channels.forEach(ch => {
-    const a = document.createElement('a');
-    a.href = `#/c/${encodeURIComponent(ch.slug)}`;
-    a.textContent = ch.name || ch.slug;
-    a.className = STATE.currentChannel === ch.slug ? 'active' : '';
-    nav.appendChild(a);
-  });
+/* ---------- Minimal markdown renderer ---------- */
+function renderMarkdown(text) {
+  if (!text) return '';
+  let html = escapeHTML(text);
+  // Headings
+  html = html.replace(/^### (.+)$/gm, '\n<h3>$1</h3>\n');
+  html = html.replace(/^## (.+)$/gm, '\n<h2>$1</h2>\n');
+  // Bold
+  html = html.replace(/\*\*([^*]+?)\*\*/g, '<strong>$1</strong>');
+  // Italic (avoid matching inside bold markers)
+  html = html.replace(/(?<!\*)\*([^*\n]+?)\*(?!\*)/g, '<em>$1</em>');
+  // Inline code
+  html = html.replace(/`([^`]+?)`/g, '<code>$1</code>');
+  // Links [text](url)
+  html = html.replace(/\[([^\]]+?)\]\(([^)\s]+?)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  // Split into blocks by double newline
+  const blocks = html.split(/\n{2,}/);
+  let out = '';
+  for (let block of blocks) {
+    block = block.trim();
+    if (!block) continue;
+    // Already a heading?
+    if (block.match(/^<h[23]>/)) { out += block; continue; }
+    const lines = block.split('\n');
+    // Bullet list?
+    if (lines.every(l => l.trim().match(/^[-*]\s/))) {
+      out += '<ul>' + lines.map(l => '<li>' + l.trim().replace(/^[-*]\s/, '') + '</li>').join('') + '</ul>';
+    } else if (lines.every(l => l.trim().match(/^\d+\.\s/))) {
+      out += '<ol>' + lines.map(l => '<li>' + l.trim().replace(/^\d+\.\s/, '') + '</li>').join('') + '</ol>';
+    } else {
+      out += '<p>' + lines.join('<br>') + '</p>';
+    }
+  }
+  return out;
 }
 
-/* ---------- Rendering: cards grid ---------- */
+/* ---------- Channel icon helpers (Discord-style) ---------- */
+function colorForName(name) {
+  if (!name) return '#8b3a1f';
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const hue = Math.abs(hash) % 360;
+  return `hsl(${hue}, 55%, 45%)`;
+}
+function initials(name) {
+  if (!name) return '?';
+  const words = name.trim().split(/\s+/);
+  if (words.length === 1) return words[0].charAt(0).toUpperCase();
+  return (words[0].charAt(0) + words[words.length-1].charAt(0)).toUpperCase();
+}
+
+/* ---------- Sidebar rendering ---------- */
+function renderSidebar() {
+  const container = $('#channelIcons');
+  container.innerHTML = '';
+  STATE.channels.forEach(ch => {
+    const icon = document.createElement('a');
+    icon.className = 'sidebar-icon' + (STATE.currentChannel === ch.slug ? ' active' : '');
+    icon.href = `#/c/${encodeURIComponent(ch.slug)}`;
+    icon.style.background = STATE.currentChannel === ch.slug ? colorForName(ch.name) : '#3a3c41';
+    icon.innerHTML = `<span>${escapeHTML(initials(ch.name))}</span><span class="tooltip">${escapeHTML(ch.name)}</span>`;
+    icon.addEventListener('mouseenter', () => {
+      if (STATE.currentChannel !== ch.slug) icon.style.background = colorForName(ch.name);
+    });
+    icon.addEventListener('mouseleave', () => {
+      if (STATE.currentChannel !== ch.slug) icon.style.background = '#3a3c41';
+    });
+    container.appendChild(icon);
+  });
+  // Update home icon active state
+  $('#homeIcon').className = 'sidebar-icon' + (STATE.currentChannel === null ? ' active' : '');
+}
+
+/* ---------- Cards ---------- */
 function renderCards(entries) {
   const grid = $('#cardGrid');
   grid.innerHTML = '';
   $('#homeState').style.display = entries.length ? 'none' : 'block';
-
   entries.forEach(e => {
     const card = document.createElement('div');
     card.className = 'card';
-    card.onclick = () => { location.hash = `#/a/${encodeURIComponent(e.channel_slug || '')}/${e.video_id}`; };
-
-    const thumb = document.createElement('div');
-    thumb.className = 'thumb' + (e.thumbnail ? '' : ' empty');
-    if (e.thumbnail) thumb.style.backgroundImage = `url(${e.thumbnail})`;
-    card.appendChild(thumb);
-
-    const body = document.createElement('div');
-    body.className = 'body';
-
-    const cn = document.createElement('div');
-    cn.className = 'channel-name';
-    cn.textContent = e.channel || '';
-    body.appendChild(cn);
-
-    const h = document.createElement('h3');
-    h.textContent = e.title || '(untitled)';
-    body.appendChild(h);
-
-    const sum = document.createElement('p');
-    sum.className = 'summary';
-    sum.textContent = e.summary || '';
-    body.appendChild(sum);
-
-    const foot = document.createElement('div');
-    foot.className = 'foot';
-    const date = document.createElement('span');
-    date.textContent = formatDate(e.publish_date);
-    foot.appendChild(date);
-    const rt = document.createElement('span');
-    rt.className = 'reading';
-    rt.textContent = e.reading_time || '';
-    foot.appendChild(rt);
-    body.appendChild(foot);
-
-    card.appendChild(body);
+    card.onclick = () => { location.hash = `#/a/${encodeURIComponent(e.channel_slug||'')}/${e.video_id}`; };
+    const thumbURL = e.thumbnail || '';
+    const playSVG = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
+    card.innerHTML = `
+      <div class="thumb ${thumbURL ? '' : 'empty'}" ${thumbURL ? `style="background-image:url(${thumbURL})"` : ''}>
+        <div class="play-overlay">${playSVG}</div>
+      </div>
+      <div class="body">
+        <div class="channel-name">${escapeHTML(e.channel||'')}</div>
+        <h3>${escapeHTML(e.title||'(untitled)')}</h3>
+        <p class="summary">${escapeHTML(e.summary||'')}</p>
+        <div class="foot">
+          <span>${formatDate(e.publish_date)}</span>
+          <span>${escapeHTML(e.reading_time||'')}</span>
+        </div>
+      </div>`;
     grid.appendChild(card);
   });
 }
 
-/* ---------- Views: home / channel ---------- */
+/* ---------- Home / channel view ---------- */
 async function viewHome(channelSlug) {
   STATE.currentChannel = channelSlug || null;
-  renderChannelNav();
+  renderSidebar();
   showView('home');
 
   let entries = STATE.search.slice();
@@ -665,30 +845,30 @@ async function viewHome(channelSlug) {
     entries = entries.filter(e => e.channel_slug === channelSlug);
     const ch = STATE.channels.find(c => c.slug === channelSlug);
     $('#homeTitle').textContent = ch ? ch.name : channelSlug;
-    $('#homeMeta').textContent = `${entries.length} article${entries.length === 1 ? '' : 's'}`;
+    $('#topbarTitle').textContent = ch ? ch.name : channelSlug;
+    $('#homeMeta').textContent = `${entries.length} article${entries.length===1?'':'s'}`;
   } else {
     $('#homeTitle').textContent = 'All Articles';
-    $('#homeMeta').textContent = `${entries.length} article${entries.length === 1 ? '' : 's'} across ${STATE.channels.length} channel${STATE.channels.length === 1 ? '' : 's'}`;
+    $('#topbarTitle').textContent = 'Knowledge Archive';
+    const n = entries.length;
+    const c = STATE.channels.length;
+    $('#homeMeta').textContent = `${n} article${n===1?'':'s'} across ${c} channel${c===1?'':'s'}`;
   }
-
-  // sort by publish_date desc
-  entries.sort((a,b) => (b.publish_date || '').localeCompare(a.publish_date || ''));
+  // Sort newest first
+  entries.sort((a,b) => (b.publish_date||'').localeCompare(a.publish_date||''));
   renderCards(entries);
 }
 
-/* ---------- View: article ---------- */
+/* ---------- Article view ---------- */
 async function viewArticle(channelSlug, videoId) {
   showView('article');
   $('#articleBody').innerHTML = `<div class="state"><div class="icon">…</div><h2>Loading</h2><p>Fetching article…</p></div>`;
-
-  // find channel slug from search index if not provided
   if (!channelSlug) {
     const hit = STATE.search.find(e => e.video_id === videoId);
     channelSlug = hit ? hit.channel_slug : '';
   }
-  const path = `channels/${channelSlug}/${videoId}.json`;
   try {
-    const art = await fetchJSON(path);
+    const art = await fetchJSON(`channels/${channelSlug}/${videoId}.json`);
     renderArticle(art, channelSlug);
   } catch (err) {
     $('#articleBody').innerHTML = `<div class="state"><div class="icon">!</div><h2>Article not found</h2><p>${escapeHTML(err.message)}</p></div>`;
@@ -704,142 +884,111 @@ function renderArticle(art, channelSlug) {
     <div class="breadcrumb">
       <a href="#/">Archive</a> ›
       ${channel ? `<a href="#/c/${encodeURIComponent(channelSlug)}">${escapeHTML(channel.name)}</a> ›` : ''}
-      <span>${escapeHTML(art.title || '')}</span>
+      <span>${escapeHTML(art.title||'')}</span>
     </div>`;
 
   const summaryBlock = art.summary
-    ? `<div class="summary-block">
-         <div class="label">Summary</div>
-         ${art.summary.split(/\n\n+/).map(p => `<p>${escapeHTML(p)}</p>`).join('')}
-       </div>`
+    ? `<div class="summary-block"><div class="label">Summary</div>${renderMarkdown(art.summary)}</div>`
     : '';
 
   const takeaways = (art.key_takeaways && art.key_takeaways.length)
-    ? `<h2>Key Takeaways</h2><ul>${art.key_takeaways.map(t => `<li>${escapeHTML(t)}</li>`).join('')}</ul>`
+    ? `<h2>Key Takeaways</h2><ul>${art.key_takeaways.map(t => `<li>${renderMarkdown(t)}</li>`).join('')}</ul>`
     : '';
 
   const sections = (art.sections || []).map(s => `
-    <h2>${escapeHTML(s.heading)}</h2>
-    ${(s.body || '').split(/\n\n+/).map(p => `<p>${escapeHTML(p)}</p>`).join('')}
+    <h2>${escapeHTML(s.heading||'')}</h2>
+    ${renderMarkdown(s.body||'')}
   `).join('');
 
   const faq = (art.faq && art.faq.length)
     ? `<h2>FAQ</h2>${art.faq.map(f => `
         <div class="faq-item">
-          <div class="q">${escapeHTML(f.question)}</div>
-          <div class="a">${escapeHTML(f.answer)}</div>
+          <div class="q">${escapeHTML(f.question||'')}</div>
+          <div class="a">${renderMarkdown(f.answer||'')}</div>
         </div>`).join('')}`
     : '';
 
-  const tags = [
-    ...(art.topics || []).map(t => ({ t, kind: 'topic' })),
-    ...(art.keywords || []).map(t => ({ t, kind: 'keyword' })),
-  ].slice(0, 24);
+  const tags = [...(art.topics||[]).map(t=>({t,kind:'topic'})), ...(art.keywords||[]).map(t=>({t,kind:'keyword'}))].slice(0,24);
   const tagsHTML = tags.length
-    ? `<div class="tags">${tags.map(t => `<a class="tag" href="#/q=${encodeURIComponent(t.t)}">${escapeHTML(t.t)}</a>`).join('')}</div>`
+    ? `<div class="tags">${tags.map(t=>`<a class="tag" href="#/q=${encodeURIComponent(t.t)}">${escapeHTML(t.t)}</a>`).join('')}</div>`
     : '';
 
-  const entities = `
+  const hasEntities = (art.people&&art.people.length) || (art.companies&&art.companies.length) || (art.tools&&art.tools.length);
+  const entities = hasEntities ? `
     <div class="entities">
-      ${art.people && art.people.length ? `<div><h4>People</h4><ul>${art.people.map(p => `<li>${escapeHTML(p)}</li>`).join('')}</ul></div>` : ''}
-      ${art.companies && art.companies.length ? `<div><h4>Companies</h4><ul>${art.companies.map(p => `<li>${escapeHTML(p)}</li>`).join('')}</ul></div>` : ''}
-      ${art.tools && art.tools.length ? `<div><h4>Tools</h4><ul>${art.tools.map(p => `<li>${escapeHTML(p)}</li>`).join('')}</ul></div>` : ''}
-    </div>`;
+      ${art.people&&art.people.length ? `<div><h4>People</h4><ul>${art.people.map(p=>`<li>${escapeHTML(p)}</li>`).join('')}</ul></div>`:''}
+      ${art.companies&&art.companies.length ? `<div><h4>Companies</h4><ul>${art.companies.map(p=>`<li>${escapeHTML(p)}</li>`).join('')}</ul></div>`:''}
+      ${art.tools&&art.tools.length ? `<div><h4>Tools</h4><ul>${art.tools.map(p=>`<li>${escapeHTML(p)}</li>`).join('')}</ul></div>`:''}
+    </div>` : '';
 
   wrap.innerHTML = `
     ${breadcrumb}
-    <h1>${escapeHTML(art.title || meta.title || '')}</h1>
+    <h1>${escapeHTML(art.title||meta.title||'')}</h1>
     <div class="article-meta">
-      ${channel ? `<span class="channel-name">${escapeHTML(channel.name)}</span><span class="sep">·</span>` : ''}
-      ${meta.publish_date ? `<span>${formatDate(meta.publish_date)}</span><span class="sep">·</span>` : ''}
-      ${art.reading_time ? `<span>${escapeHTML(art.reading_time)}</span>` : ''}
-      ${meta.duration ? `<span class="sep">·</span><span>${formatDuration(meta.duration)} video</span>` : ''}
+      ${channel?`<span class="channel-name">${escapeHTML(channel.name)}</span><span class="sep">·</span>`:''}
+      ${meta.publish_date?`<span>${formatDate(meta.publish_date)}</span><span class="sep">·</span>`:''}
+      ${art.reading_time?`<span>${escapeHTML(art.reading_time)}</span>`:''}
+      ${meta.duration?`<span class="sep">·</span><span>${formatDuration(meta.duration)} video</span>`:''}
     </div>
-
     ${summaryBlock}
     ${takeaways}
     ${sections}
     ${faq}
     ${tagsHTML}
-    ${(art.people && art.people.length) || (art.companies && art.companies.length) || (art.tools && art.tools.length) ? entities : ''}
-
+    ${entities}
     <div class="article-footer">
-      <a class="btn-back" href="#/${channel ? 'c/' + encodeURIComponent(channelSlug) : ''}">← Back to ${channel ? escapeHTML(channel.name) : 'archive'}</a>
-      ${meta.video_url ? `<a class="source-link" href="${escapeHTML(meta.video_url)}" target="_blank" rel="noopener">View original video on YouTube ↗</a>` : ''}
+      <a class="btn-back" href="#/${channel?'c/'+encodeURIComponent(channelSlug):''}">← Back to ${channel?escapeHTML(channel.name):'archive'}</a>
+      ${meta.video_url?`<a class="source-link" href="${escapeHTML(meta.video_url)}" target="_blank" rel="noopener">View original video on YouTube ↗</a>`:''}
     </div>
   `;
 }
 
-/* ---------- View: search ---------- */
+/* ---------- Search ---------- */
 function viewSearch(query) {
   showView('search');
   $('#searchTitle').textContent = `Search: "${query}"`;
+  $('#topbarTitle').textContent = 'Search';
   const q = query.toLowerCase().trim();
   if (!q) {
     $('#searchMeta').textContent = '';
     $('#searchResults').innerHTML = `<div class="state"><div class="icon">?</div><h2>Type to search</h2><p>Search runs across titles, summaries, topics and keywords.</p></div>`;
     return;
   }
-
   const results = STATE.search.filter(e => {
-    const haystack = [
-      e.title, e.summary, e.channel,
-      (e.keywords || []).join(' '),
-      (e.topics || []).join(' '),
-    ].join(' ').toLowerCase();
-    return haystack.includes(q);
+    const h = [e.title, e.summary, e.channel, (e.keywords||[]).join(' '), (e.topics||[]).join(' ')].join(' ').toLowerCase();
+    return h.includes(q);
   }).sort((a,b) => {
-    // title hits rank higher
-    const at = (a.title || '').toLowerCase().includes(q) ? 0 : 1;
-    const bt = (b.title || '').toLowerCase().includes(q) ? 0 : 1;
+    const at = (a.title||'').toLowerCase().includes(q) ? 0 : 1;
+    const bt = (b.title||'').toLowerCase().includes(q) ? 0 : 1;
     return at - bt;
   });
-
-  $('#searchMeta').textContent = `${results.length} result${results.length === 1 ? '' : 's'}`;
+  $('#searchMeta').textContent = `${results.length} result${results.length===1?'':'s'}`;
   $('#searchResults').innerHTML = results.length
-    ? results.map(e => `
-        <div class="result" onclick="location.hash='#/a/${encodeURIComponent(e.channel_slug || '')}/${e.video_id}'">
-          <div class="channel-name">${escapeHTML(e.channel || '')}</div>
-          <h3>${escapeHTML(e.title || '')}</h3>
-          <div class="snippet">${escapeHTML((e.summary || '').slice(0, 220))}</div>
-          ${(e.keywords || []).slice(0, 5).length
-             ? `<div class="keywords">${e.keywords.slice(0,5).map(k => escapeHTML(k)).join(' · ')}</div>`
-             : ''}
-        </div>`).join('')
+    ? results.map(e => {
+        const thumbURL = e.thumbnail || '';
+        return `<div class="result" onclick="location.hash='#/a/${encodeURIComponent(e.channel_slug||'')}/${e.video_id}'">
+          <div class="result-thumb ${thumbURL?'':'empty'}" ${thumbURL?`style="background-image:url(${thumbURL})"`:''}></div>
+          <div class="result-body">
+            <div class="channel-name">${escapeHTML(e.channel||'')}</div>
+            <h3>${escapeHTML(e.title||'')}</h3>
+            <div class="snippet">${escapeHTML((e.summary||'').slice(0,200))}</div>
+            ${(e.keywords||[]).slice(0,5).length ? `<div class="keywords">${e.keywords.slice(0,5).map(k=>escapeHTML(k)).join(' · ')}</div>` : ''}
+          </div>
+        </div>`;
+      }).join('')
     : `<div class="state"><div class="icon">—</div><h2>No matches</h2><p>Try a different query.</p></div>`;
 }
 
 /* ---------- Router ---------- */
 function router() {
   const hash = location.hash.replace(/^#\/?/, '');
-
-  // search:  q=:query
-  if (hash.startsWith('q=')) {
-    const q = decodeURIComponent(hash.slice(2));
-    $('#searchInput').value = q;
-    viewSearch(q);
-    return;
-  }
-
-  // article:  a/:channelSlug/:videoId
-  if (hash.startsWith('a/')) {
-    const parts = hash.slice(2).split('/');
-    viewArticle(parts[0] ? decodeURIComponent(parts[0]) : '', parts[1] || '');
-    return;
-  }
-
-  // channel:  c/:slug
-  if (hash.startsWith('c/')) {
-    const slug = decodeURIComponent(hash.slice(2));
-    viewHome(slug);
-    return;
-  }
-
-  // home
+  if (hash.startsWith('q=')) { const q = decodeURIComponent(hash.slice(2)); $('#searchInput').value = q; viewSearch(q); return; }
+  if (hash.startsWith('a/')) { const parts = hash.slice(2).split('/'); viewArticle(parts[0]?decodeURIComponent(parts[0]):'', parts[1]||''); return; }
+  if (hash.startsWith('c/')) { viewHome(decodeURIComponent(hash.slice(2))); return; }
   viewHome(null);
 }
 
-/* ---------- Search input (debounced) ---------- */
+/* ---------- Search input ---------- */
 let searchTimer = null;
 $('#searchInput').addEventListener('input', (e) => {
   const v = e.target.value.trim();
@@ -850,7 +999,7 @@ $('#searchInput').addEventListener('input', (e) => {
   }, 220);
 });
 
-$('#brandLink').addEventListener('click', (e) => {
+$('#homeIcon').addEventListener('click', (e) => {
   e.preventDefault();
   location.hash = '#/';
   $('#searchInput').value = '';
@@ -864,7 +1013,6 @@ async function init() {
       fetchJSON('search.json').catch(() => []),
     ]);
     STATE.channels = Array.isArray(channels) ? channels : [];
-    // attach channel_slug to each search entry from the channels list
     STATE.search = (Array.isArray(search) ? search : []).map(e => {
       if (!e.channel_slug) {
         const ch = STATE.channels.find(c => c.name === e.channel);
@@ -872,16 +1020,11 @@ async function init() {
       }
       return e;
     });
-  } catch (err) {
-    console.error('init failed', err);
-  }
-
+  } catch (err) { console.error('init failed', err); }
   window.addEventListener('hashchange', router);
   router();
 }
-
 init();
 </script>
-
 </body>
 </html>
