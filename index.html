@@ -83,6 +83,15 @@
     user-select: none;
   }
   .sidebar-icon svg { width: 24px; height: 24px; fill: #dcddde; transition: fill .2s; }
+  .sidebar-icon img.avatar {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    transition: border-radius .2s;
+  }
+  .sidebar-icon:hover img.avatar { border-radius: 16px; }
+  .sidebar-icon.active img.avatar { border-radius: 16px; }
   .sidebar-icon:hover {
     border-radius: 16px;
     background: var(--accent);
@@ -793,13 +802,13 @@ function renderSidebar() {
     icon.className = 'sidebar-icon' + (STATE.currentChannel === ch.slug ? ' active' : '');
     icon.href = `#/c/${encodeURIComponent(ch.slug)}`;
     icon.style.background = STATE.currentChannel === ch.slug ? colorForName(ch.name) : '#3a3c41';
-    icon.innerHTML = `<span>${escapeHTML(initials(ch.name))}</span><span class="tooltip">${escapeHTML(ch.name)}</span>`;
-    icon.addEventListener('mouseenter', () => {
-      if (STATE.currentChannel !== ch.slug) icon.style.background = colorForName(ch.name);
-    });
-    icon.addEventListener('mouseleave', () => {
-      if (STATE.currentChannel !== ch.slug) icon.style.background = '#3a3c41';
-    });
+    // Use real avatar image if available, otherwise fall back to letter initials
+    const avatarURL = ch.avatar || '';
+    if (avatarURL) {
+      icon.innerHTML = `<img class="avatar" src="${escapeHTML(avatarURL)}" alt="${escapeHTML(ch.name)}" referrerpolicy="no-referrer"><span class="tooltip">${escapeHTML(ch.name)}</span>`;
+    } else {
+      icon.innerHTML = `<span>${escapeHTML(initials(ch.name))}</span><span class="tooltip">${escapeHTML(ch.name)}</span>`;
+    }
     container.appendChild(icon);
   });
   // Update home icon active state
