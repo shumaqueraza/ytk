@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Knowledge Archive</title>
+<meta name="description" content="A searchable archive of structured knowledge articles generated from YouTube videos.">
+<style>
+  /* ----------------------------------------------------------------
+     Editorial knowledge archive — calm, readable, no chrome.
+     Palette: warm paper background, dark ink, single muted accent.
+     ---------------------------------------------------------------- */
+  :root {
+    --bg: #fbfaf7;
+    --surface: #ffffff;
+    --ink: #1a1a1a;
+    --ink-soft: #4a4a4a;
+    --ink-muted: #7a7a7a;
+    --rule: #e8e6df;
+    --accent: #8b3a1f;
+    --accent-soft: #f5ede7;
+    --shadow: 0 1px 2px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.04);
+    --radius: 6px;
+    --max: 1180px;
+    --reading: 680px;
+    --serif: 'Source Serif Pro', 'Source Serif 4', Georgia, 'Times New Roman', serif;
+    --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', 'Helvetica Neue', Arial, sans-serif;
+    --mono: 'SF Mono', Menlo, Consolas, monospace;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* ---------- Header ---------- */
+  header.site {
+    border-bottom: 1px solid var(--rule);
+    background: var(--surface);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    backdrop-filter: saturate(120%);
+  }
+  .site-inner {
+    max-width: var(--max);
+    margin: 0 auto;
+    padding: 18px 24px;
+    display: flex;
+    align-items: center;
+    gap: 32px;
+  }
+  .brand {
+    font-family: var(--serif);
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .brand small {
+    display: block;
+    font-family: var(--sans);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--ink-muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+  nav.channels {
+    display: flex;
+    gap: 18px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    flex: 1;
+  }
+  nav.channels::-webkit-scrollbar { display: none; }
+  nav.channels a {
+    color: var(--ink-soft);
+    text-decoration: none;
+    font-size: 14px;
+    white-space: nowrap;
+    padding: 6px 0;
+    border-bottom: 2px solid transparent;
+    transition: color .15s, border-color .15s;
+  }
+  nav.channels a:hover { color: var(--ink); }
+  nav.channels a.active {
+    color: var(--ink);
+    border-bottom-color: var(--accent);
+  }
+  .search-wrap {
+    position: relative;
+    min-width: 240px;
+  }
+  .search-wrap input {
+    width: 100%;
+    padding: 9px 12px 9px 34px;
+    font-size: 14px;
+    font-family: var(--sans);
+    background: var(--bg);
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    color: var(--ink);
+    outline: none;
+    transition: border-color .15s, background .15s;
+  }
+  .search-wrap input:focus {
+    border-color: var(--ink-muted);
+    background: var(--surface);
+  }
+  .search-wrap::before {
+    content: "";
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 14px;
+    height: 14px;
+    background: no-repeat center / contain url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237a7a7a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='11' cy='11' r='7'></circle><line x1='21' y1='21' x2='16.5' y2='16.5'></line></svg>");
+  }
+
+  /* ---------- Layout ---------- */
+  main {
+    max-width: var(--max);
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+  }
+
+  /* ---------- Views ---------- */
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* ---------- Channel / home view ---------- */
+  .page-head {
+    margin-bottom: 36px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .page-head h1 {
+    font-family: var(--serif);
+    font-size: 36px;
+    font-weight: 600;
+    margin: 0 0 8px;
+    letter-spacing: -0.02em;
+  }
+  .page-head .meta {
+    color: var(--ink-muted);
+    font-size: 14px;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 28px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform .15s ease, box-shadow .15s ease, border-color .15s;
+    display: flex;
+    flex-direction: column;
+  }
+  .card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow);
+    border-color: #d8d4ca;
+  }
+  .card .thumb {
+    width: 100%;
+    aspect-ratio: 16/9;
+    background: #efedea center / cover no-repeat;
+    display: block;
+  }
+  .card .thumb.empty {
+    background: linear-gradient(135deg, #efedea, #e3ded4);
+  }
+  .card .body {
+    padding: 16px 18px 18px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+  .card .channel-name {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+  .card h3 {
+    font-family: var(--serif);
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 1.35;
+    margin: 0 0 8px;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+  }
+  .card .summary {
+    font-size: 13.5px;
+    color: var(--ink-soft);
+    line-height: 1.55;
+    margin: 0 0 14px;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .card .foot {
+    margin-top: auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    color: var(--ink-muted);
+  }
+  .card .reading {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  /* ---------- Article view ---------- */
+  article.article {
+    max-width: var(--reading);
+    margin: 0 auto;
+  }
+  article.article .breadcrumb {
+    font-size: 13px;
+    color: var(--ink-muted);
+    margin-bottom: 24px;
+  }
+  article.article .breadcrumb a {
+    color: var(--ink-muted);
+    text-decoration: none;
+  }
+  article.article .breadcrumb a:hover { color: var(--accent); }
+
+  article.article h1 {
+    font-family: var(--serif);
+    font-size: 38px;
+    font-weight: 600;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    margin: 0 0 16px;
+  }
+  article.article .article-meta {
+    color: var(--ink-muted);
+    font-size: 14px;
+    margin-bottom: 28px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--rule);
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  article.article .article-meta .channel-name {
+    color: var(--accent);
+    font-weight: 600;
+  }
+  article.article .article-meta .sep { color: var(--rule); }
+
+  article.article h2 {
+    font-family: var(--serif);
+    font-size: 24px;
+    font-weight: 600;
+    margin: 36px 0 12px;
+    letter-spacing: -0.01em;
+  }
+  article.article p {
+    font-family: var(--serif);
+    font-size: 18px;
+    line-height: 1.7;
+    color: #252525;
+    margin: 0 0 18px;
+  }
+  article.article ul, article.article ol {
+    font-family: var(--serif);
+    font-size: 17px;
+    line-height: 1.65;
+    color: #252525;
+    padding-left: 22px;
+    margin: 0 0 22px;
+  }
+  article.article li { margin-bottom: 6px; }
+
+  .summary-block {
+    background: var(--accent-soft);
+    border-left: 3px solid var(--accent);
+    padding: 18px 22px;
+    border-radius: 0 var(--radius) var(--radius) 0;
+    margin-bottom: 32px;
+  }
+  .summary-block p {
+    font-size: 16px;
+    margin: 0 0 10px;
+    color: var(--ink);
+  }
+  .summary-block p:last-child { margin-bottom: 0; }
+  .summary-block .label {
+    font-family: var(--sans);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+
+  .faq-item {
+    border-top: 1px solid var(--rule);
+    padding: 18px 0;
+  }
+  .faq-item:last-child { border-bottom: 1px solid var(--rule); }
+  .faq-item .q {
+    font-family: var(--serif);
+    font-size: 17px;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .faq-item .a {
+    font-family: var(--serif);
+    font-size: 16px;
+    color: var(--ink-soft);
+    line-height: 1.65;
+  }
+
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 28px 0 8px;
+  }
+  .tag {
+    display: inline-block;
+    padding: 4px 10px;
+    font-size: 12px;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 100px;
+    color: var(--ink-soft);
+    text-decoration: none;
+    transition: border-color .15s, color .15s;
+  }
+  .tag:hover { color: var(--accent); border-color: var(--accent); }
+
+  .entities {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 20px;
+    margin: 32px 0;
+    padding: 24px;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+  }
+  .entities h4 {
+    font-family: var(--sans);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-muted);
+    margin: 0 0 8px;
+  }
+  .entities ul { list-style: none; padding: 0; margin: 0; }
+  .entities li {
+    font-size: 14px;
+    color: var(--ink-soft);
+    padding: 2px 0;
+  }
+
+  .article-footer {
+    margin-top: 40px;
+    padding-top: 24px;
+    border-top: 1px solid var(--rule);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .btn-back {
+    display: inline-block;
+    padding: 8px 16px;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    color: var(--ink);
+    text-decoration: none;
+    font-size: 14px;
+    transition: background .15s;
+  }
+  .btn-back:hover { background: var(--bg); }
+  .source-link {
+    font-size: 13px;
+    color: var(--ink-muted);
+    text-decoration: none;
+  }
+  .source-link:hover { color: var(--accent); }
+
+  /* ---------- Empty / loading / error states ---------- */
+  .state {
+    text-align: center;
+    padding: 80px 20px;
+    color: var(--ink-muted);
+  }
+  .state .icon {
+    font-size: 32px;
+    font-family: var(--serif);
+    margin-bottom: 12px;
+    color: var(--ink-muted);
+  }
+  .state h2 {
+    font-family: var(--serif);
+    font-size: 22px;
+    margin: 0 0 6px;
+    color: var(--ink);
+    font-weight: 500;
+  }
+  .state p { font-size: 14px; margin: 0; }
+
+  /* ---------- Search results ---------- */
+  .search-results .result {
+    padding: 20px 0;
+    border-bottom: 1px solid var(--rule);
+    cursor: pointer;
+  }
+  .search-results .result:hover h3 { color: var(--accent); }
+  .search-results .result h3 {
+    font-family: var(--serif);
+    font-size: 20px;
+    margin: 0 0 4px;
+    font-weight: 600;
+    color: var(--ink);
+    transition: color .15s;
+  }
+  .search-results .result .channel-name {
+    font-size: 12px;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .search-results .result .snippet {
+    color: var(--ink-soft);
+    font-size: 14.5px;
+    line-height: 1.55;
+  }
+  .search-results .result .keywords {
+    margin-top: 6px;
+    font-size: 12px;
+    color: var(--ink-muted);
+  }
+
+  /* ---------- Responsive ---------- */
+  @media (max-width: 760px) {
+    .site-inner { flex-wrap: wrap; gap: 16px; padding: 14px 16px; }
+    .search-wrap { width: 100%; min-width: 0; order: 3; }
+    main { padding: 24px 16px 60px; }
+    .page-head h1 { font-size: 28px; }
+    article.article h1 { font-size: 28px; }
+    article.article p { font-size: 17px; }
+    .grid { grid-template-columns: 1fr; gap: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="site">
+  <div class="site-inner">
+    <a class="brand" href="#/" id="brandLink">
+      Knowledge Archive
+      <small>structured reading</small>
+    </a>
+    <nav class="channels" id="channelNav"></nav>
+    <div class="search-wrap">
+      <input id="searchInput" type="search" placeholder="Search articles, topics, keywords..." autocomplete="off">
+    </div>
+  </div>
+</header>
+
+<main>
+  <!-- Home / channel view -->
+  <section id="homeView" class="view active">
+    <div class="page-head">
+      <h1 id="homeTitle">All Articles</h1>
+      <div class="meta" id="homeMeta"></div>
+    </div>
+    <div id="cardGrid" class="grid"></div>
+    <div id="homeState" class="state" style="display:none;">
+      <div class="icon">—</div>
+      <h2>No articles yet</h2>
+      <p>Run the pipeline to publish your first knowledge article.</p>
+    </div>
+  </section>
+
+  <!-- Search results view -->
+  <section id="searchView" class="view">
+    <div class="page-head">
+      <h1 id="searchTitle">Search</h1>
+      <div class="meta" id="searchMeta"></div>
+    </div>
+    <div class="search-results" id="searchResults"></div>
+  </section>
+
+  <!-- Article view -->
+  <section id="articleView" class="view">
+    <article class="article" id="articleBody"></article>
+  </section>
+</main>
+
+<script>
+/* ============================================================================
+   Static knowledge archive frontend.
+   Loads channels.json + search.json up front, fetches per-video JSON on demand.
+   Routing is hash-based:  #/  #/c/:slug  #/a/:slug/:videoId  #/q=:query
+   ============================================================================ */
+
+const STATE = {
+  channels: [],        // [{name, slug, url, ...}]
+  search: [],          // [{title, channel, slug, video_id, summary, keywords, topics}]
+  currentChannel: null,
+  currentArticle: null,
+};
+
+const $ = (sel) => document.querySelector(sel);
+const views = {
+  home: $('#homeView'),
+  search: $('#searchView'),
+  article: $('#articleView'),
+};
+
+function showView(name) {
+  Object.values(views).forEach(v => v.classList.remove('active'));
+  views[name].classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'instant' });
+}
+
+/* ---------- JSON fetching ---------- */
+async function fetchJSON(path) {
+  // Resolve relative to the page location (works on GitHub Pages subpaths too).
+  const base = window.location.pathname.replace(/\/[^/]*$/, '/');
+  const url = base + path;
+  const r = await fetch(url, { cache: 'no-cache' });
+  if (!r.ok) throw new Error(`${path} -> ${r.status}`);
+  return r.json();
+}
+
+/* ---------- Utils ---------- */
+function escapeHTML(s) {
+  if (s == null) return '';
+  return String(s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+function formatDate(yyyymmdd) {
+  if (!yyyymmdd || yyyymmdd.length !== 8) return '';
+  const y = yyyymmdd.slice(0,4), m = yyyymmdd.slice(4,6), d = yyyymmdd.slice(6,8);
+  const dt = new Date(`${y}-${m}-${d}T00:00:00Z`);
+  if (isNaN(dt)) return yyyymmdd;
+  return dt.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+}
+function formatDuration(sec) {
+  sec = parseInt(sec, 10) || 0;
+  if (!sec) return '';
+  const h = Math.floor(sec/3600), m = Math.floor((sec%3600)/60), s = sec%60;
+  if (h) return `${h}h ${m}m`;
+  if (m) return `${m}m`;
+  return `${s}s`;
+}
+
+/* ---------- Rendering: channel nav ---------- */
+function renderChannelNav() {
+  const nav = $('#channelNav');
+  nav.innerHTML = '';
+  const all = document.createElement('a');
+  all.href = '#/';
+  all.textContent = 'All';
+  all.className = STATE.currentChannel === null ? 'active' : '';
+  nav.appendChild(all);
+  STATE.channels.forEach(ch => {
+    const a = document.createElement('a');
+    a.href = `#/c/${encodeURIComponent(ch.slug)}`;
+    a.textContent = ch.name || ch.slug;
+    a.className = STATE.currentChannel === ch.slug ? 'active' : '';
+    nav.appendChild(a);
+  });
+}
+
+/* ---------- Rendering: cards grid ---------- */
+function renderCards(entries) {
+  const grid = $('#cardGrid');
+  grid.innerHTML = '';
+  $('#homeState').style.display = entries.length ? 'none' : 'block';
+
+  entries.forEach(e => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.onclick = () => { location.hash = `#/a/${encodeURIComponent(e.channel_slug || '')}/${e.video_id}`; };
+
+    const thumb = document.createElement('div');
+    thumb.className = 'thumb' + (e.thumbnail ? '' : ' empty');
+    if (e.thumbnail) thumb.style.backgroundImage = `url(${e.thumbnail})`;
+    card.appendChild(thumb);
+
+    const body = document.createElement('div');
+    body.className = 'body';
+
+    const cn = document.createElement('div');
+    cn.className = 'channel-name';
+    cn.textContent = e.channel || '';
+    body.appendChild(cn);
+
+    const h = document.createElement('h3');
+    h.textContent = e.title || '(untitled)';
+    body.appendChild(h);
+
+    const sum = document.createElement('p');
+    sum.className = 'summary';
+    sum.textContent = e.summary || '';
+    body.appendChild(sum);
+
+    const foot = document.createElement('div');
+    foot.className = 'foot';
+    const date = document.createElement('span');
+    date.textContent = formatDate(e.publish_date);
+    foot.appendChild(date);
+    const rt = document.createElement('span');
+    rt.className = 'reading';
+    rt.textContent = e.reading_time || '';
+    foot.appendChild(rt);
+    body.appendChild(foot);
+
+    card.appendChild(body);
+    grid.appendChild(card);
+  });
+}
+
+/* ---------- Views: home / channel ---------- */
+async function viewHome(channelSlug) {
+  STATE.currentChannel = channelSlug || null;
+  renderChannelNav();
+  showView('home');
+
+  let entries = STATE.search.slice();
+  if (channelSlug) {
+    entries = entries.filter(e => e.channel_slug === channelSlug);
+    const ch = STATE.channels.find(c => c.slug === channelSlug);
+    $('#homeTitle').textContent = ch ? ch.name : channelSlug;
+    $('#homeMeta').textContent = `${entries.length} article${entries.length === 1 ? '' : 's'}`;
+  } else {
+    $('#homeTitle').textContent = 'All Articles';
+    $('#homeMeta').textContent = `${entries.length} article${entries.length === 1 ? '' : 's'} across ${STATE.channels.length} channel${STATE.channels.length === 1 ? '' : 's'}`;
+  }
+
+  // sort by publish_date desc
+  entries.sort((a,b) => (b.publish_date || '').localeCompare(a.publish_date || ''));
+  renderCards(entries);
+}
+
+/* ---------- View: article ---------- */
+async function viewArticle(channelSlug, videoId) {
+  showView('article');
+  $('#articleBody').innerHTML = `<div class="state"><div class="icon">…</div><h2>Loading</h2><p>Fetching article…</p></div>`;
+
+  // find channel slug from search index if not provided
+  if (!channelSlug) {
+    const hit = STATE.search.find(e => e.video_id === videoId);
+    channelSlug = hit ? hit.channel_slug : '';
+  }
+  const path = `channels/${channelSlug}/${videoId}.json`;
+  try {
+    const art = await fetchJSON(path);
+    renderArticle(art, channelSlug);
+  } catch (err) {
+    $('#articleBody').innerHTML = `<div class="state"><div class="icon">!</div><h2>Article not found</h2><p>${escapeHTML(err.message)}</p></div>`;
+  }
+}
+
+function renderArticle(art, channelSlug) {
+  const meta = art._meta || {};
+  const channel = STATE.channels.find(c => c.slug === channelSlug);
+  const wrap = $('#articleBody');
+
+  const breadcrumb = `
+    <div class="breadcrumb">
+      <a href="#/">Archive</a> ›
+      ${channel ? `<a href="#/c/${encodeURIComponent(channelSlug)}">${escapeHTML(channel.name)}</a> ›` : ''}
+      <span>${escapeHTML(art.title || '')}</span>
+    </div>`;
+
+  const summaryBlock = art.summary
+    ? `<div class="summary-block">
+         <div class="label">Summary</div>
+         ${art.summary.split(/\n\n+/).map(p => `<p>${escapeHTML(p)}</p>`).join('')}
+       </div>`
+    : '';
+
+  const takeaways = (art.key_takeaways && art.key_takeaways.length)
+    ? `<h2>Key Takeaways</h2><ul>${art.key_takeaways.map(t => `<li>${escapeHTML(t)}</li>`).join('')}</ul>`
+    : '';
+
+  const sections = (art.sections || []).map(s => `
+    <h2>${escapeHTML(s.heading)}</h2>
+    ${(s.body || '').split(/\n\n+/).map(p => `<p>${escapeHTML(p)}</p>`).join('')}
+  `).join('');
+
+  const faq = (art.faq && art.faq.length)
+    ? `<h2>FAQ</h2>${art.faq.map(f => `
+        <div class="faq-item">
+          <div class="q">${escapeHTML(f.question)}</div>
+          <div class="a">${escapeHTML(f.answer)}</div>
+        </div>`).join('')}`
+    : '';
+
+  const tags = [
+    ...(art.topics || []).map(t => ({ t, kind: 'topic' })),
+    ...(art.keywords || []).map(t => ({ t, kind: 'keyword' })),
+  ].slice(0, 24);
+  const tagsHTML = tags.length
+    ? `<div class="tags">${tags.map(t => `<a class="tag" href="#/q=${encodeURIComponent(t.t)}">${escapeHTML(t.t)}</a>`).join('')}</div>`
+    : '';
+
+  const entities = `
+    <div class="entities">
+      ${art.people && art.people.length ? `<div><h4>People</h4><ul>${art.people.map(p => `<li>${escapeHTML(p)}</li>`).join('')}</ul></div>` : ''}
+      ${art.companies && art.companies.length ? `<div><h4>Companies</h4><ul>${art.companies.map(p => `<li>${escapeHTML(p)}</li>`).join('')}</ul></div>` : ''}
+      ${art.tools && art.tools.length ? `<div><h4>Tools</h4><ul>${art.tools.map(p => `<li>${escapeHTML(p)}</li>`).join('')}</ul></div>` : ''}
+    </div>`;
+
+  wrap.innerHTML = `
+    ${breadcrumb}
+    <h1>${escapeHTML(art.title || meta.title || '')}</h1>
+    <div class="article-meta">
+      ${channel ? `<span class="channel-name">${escapeHTML(channel.name)}</span><span class="sep">·</span>` : ''}
+      ${meta.publish_date ? `<span>${formatDate(meta.publish_date)}</span><span class="sep">·</span>` : ''}
+      ${art.reading_time ? `<span>${escapeHTML(art.reading_time)}</span>` : ''}
+      ${meta.duration ? `<span class="sep">·</span><span>${formatDuration(meta.duration)} video</span>` : ''}
+    </div>
+
+    ${summaryBlock}
+    ${takeaways}
+    ${sections}
+    ${faq}
+    ${tagsHTML}
+    ${(art.people && art.people.length) || (art.companies && art.companies.length) || (art.tools && art.tools.length) ? entities : ''}
+
+    <div class="article-footer">
+      <a class="btn-back" href="#/${channel ? 'c/' + encodeURIComponent(channelSlug) : ''}">← Back to ${channel ? escapeHTML(channel.name) : 'archive'}</a>
+      ${meta.video_url ? `<a class="source-link" href="${escapeHTML(meta.video_url)}" target="_blank" rel="noopener">View original video on YouTube ↗</a>` : ''}
+    </div>
+  `;
+}
+
+/* ---------- View: search ---------- */
+function viewSearch(query) {
+  showView('search');
+  $('#searchTitle').textContent = `Search: "${query}"`;
+  const q = query.toLowerCase().trim();
+  if (!q) {
+    $('#searchMeta').textContent = '';
+    $('#searchResults').innerHTML = `<div class="state"><div class="icon">?</div><h2>Type to search</h2><p>Search runs across titles, summaries, topics and keywords.</p></div>`;
+    return;
+  }
+
+  const results = STATE.search.filter(e => {
+    const haystack = [
+      e.title, e.summary, e.channel,
+      (e.keywords || []).join(' '),
+      (e.topics || []).join(' '),
+    ].join(' ').toLowerCase();
+    return haystack.includes(q);
+  }).sort((a,b) => {
+    // title hits rank higher
+    const at = (a.title || '').toLowerCase().includes(q) ? 0 : 1;
+    const bt = (b.title || '').toLowerCase().includes(q) ? 0 : 1;
+    return at - bt;
+  });
+
+  $('#searchMeta').textContent = `${results.length} result${results.length === 1 ? '' : 's'}`;
+  $('#searchResults').innerHTML = results.length
+    ? results.map(e => `
+        <div class="result" onclick="location.hash='#/a/${encodeURIComponent(e.channel_slug || '')}/${e.video_id}'">
+          <div class="channel-name">${escapeHTML(e.channel || '')}</div>
+          <h3>${escapeHTML(e.title || '')}</h3>
+          <div class="snippet">${escapeHTML((e.summary || '').slice(0, 220))}</div>
+          ${(e.keywords || []).slice(0, 5).length
+             ? `<div class="keywords">${e.keywords.slice(0,5).map(k => escapeHTML(k)).join(' · ')}</div>`
+             : ''}
+        </div>`).join('')
+    : `<div class="state"><div class="icon">—</div><h2>No matches</h2><p>Try a different query.</p></div>`;
+}
+
+/* ---------- Router ---------- */
+function router() {
+  const hash = location.hash.replace(/^#\/?/, '');
+
+  // search:  q=:query
+  if (hash.startsWith('q=')) {
+    const q = decodeURIComponent(hash.slice(2));
+    $('#searchInput').value = q;
+    viewSearch(q);
+    return;
+  }
+
+  // article:  a/:channelSlug/:videoId
+  if (hash.startsWith('a/')) {
+    const parts = hash.slice(2).split('/');
+    viewArticle(parts[0] ? decodeURIComponent(parts[0]) : '', parts[1] || '');
+    return;
+  }
+
+  // channel:  c/:slug
+  if (hash.startsWith('c/')) {
+    const slug = decodeURIComponent(hash.slice(2));
+    viewHome(slug);
+    return;
+  }
+
+  // home
+  viewHome(null);
+}
+
+/* ---------- Search input (debounced) ---------- */
+let searchTimer = null;
+$('#searchInput').addEventListener('input', (e) => {
+  const v = e.target.value.trim();
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => {
+    if (v) location.hash = `#/q=${encodeURIComponent(v)}`;
+    else if (location.hash.startsWith('#/q=')) location.hash = '#/';
+  }, 220);
+});
+
+$('#brandLink').addEventListener('click', (e) => {
+  e.preventDefault();
+  location.hash = '#/';
+  $('#searchInput').value = '';
+});
+
+/* ---------- Init ---------- */
+async function init() {
+  try {
+    const [channels, search] = await Promise.all([
+      fetchJSON('channels.json').catch(() => []),
+      fetchJSON('search.json').catch(() => []),
+    ]);
+    STATE.channels = Array.isArray(channels) ? channels : [];
+    // attach channel_slug to each search entry from the channels list
+    STATE.search = (Array.isArray(search) ? search : []).map(e => {
+      if (!e.channel_slug) {
+        const ch = STATE.channels.find(c => c.name === e.channel);
+        e.channel_slug = ch ? ch.slug : '';
+      }
+      return e;
+    });
+  } catch (err) {
+    console.error('init failed', err);
+  }
+
+  window.addEventListener('hashchange', router);
+  router();
+}
+
+init();
+</script>
+
+</body>
+</html>
